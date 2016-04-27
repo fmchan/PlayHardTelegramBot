@@ -1,5 +1,6 @@
 package org.telegram.updateshandlers;
 
+import java.io.File;
 import java.io.InvalidObjectException;
 import java.util.List;
 
@@ -14,6 +15,7 @@ import org.telegram.structure.EventPreiod;
 import org.telegram.telegrambots.TelegramApiException;
 import org.telegram.telegrambots.api.methods.BotApiMethod;
 import org.telegram.telegrambots.api.methods.SendMessage;
+import org.telegram.telegrambots.api.methods.SendPhoto;
 import org.telegram.telegrambots.api.objects.Message;
 import org.telegram.telegrambots.api.objects.ReplyKeyboardHide;
 import org.telegram.telegrambots.api.objects.Update;
@@ -51,6 +53,8 @@ public class PlayhardHandler extends TelegramLongPollingBot {
 				onCommandReceived(message, EventPreiod.SEVEN_DAYS);
 			else if (message.getText().startsWith(Commands.eventLaterCommand))
 				onCommandReceived(message, EventPreiod.LATER);
+			else if (message.getText().startsWith(Commands.iconCommand))
+				sendIcon(message);
 			else if ((message.getText().startsWith(Commands.help) || (message
 					.getText().startsWith(Commands.startCommand) || !message
 					.isGroupMessage()))) {
@@ -69,6 +73,7 @@ public class PlayhardHandler extends TelegramLongPollingBot {
 		sendMessageRequest.setReplayToMessageId(message.getMessageId());
 		String text = events.size() == 0 ? "No event" : Joiner.on("\n").join(events);
 		sendMessageRequest.setText(text);
+		sendMessageRequest.enableHtml(true);
 		try {
 			sendMessageAsync(sendMessageRequest, new SentCallback<Message>() {
 				@Override
@@ -90,16 +95,32 @@ public class PlayhardHandler extends TelegramLongPollingBot {
 
 	}
 
+	private void sendIcon(Message message) throws InvalidObjectException {
+		SendPhoto sendPhotoRequest = new SendPhoto();
+		sendPhotoRequest.setChatId(message.getChatId().toString());
+		String fileName = "/Users/admin/Documents/icon.png";
+		File fileToUpload = new File(fileName);
+		sendPhotoRequest.setNewPhoto(fileToUpload.getAbsolutePath(), fileName);
+		try {
+			sendPhoto(sendPhotoRequest);
+		} catch (TelegramApiException e) {
+			BotLogger.error(LOGTAG, e);
+		}
+	}
+
 	private void sendHelpMessage(Message message) throws InvalidObjectException {
 		SendMessage sendMessageRequest = new SendMessage();
 		String helpDirectionsFormated = String.format(
 				"When do you want to play?\n\nTo get events: "
 						+ "\n|-- %s : Get today event"
 						+ "\n|-- %s : Get 7-day event"
-						+ "\n|-- %s : Get later event",
+						+ "\n|-- %s : Get later event"
+						+ "\n|-- %s : Get Playhard icon"
+						+ "\n\n<a href='http://goo.gl/5gwFja'>Download App</a>",
 				Commands.eventTodayCommand, Commands.event7DaysCommand,
-				Commands.eventLaterCommand);
+				Commands.eventLaterCommand, Commands.iconCommand);
 		sendMessageRequest.setText(helpDirectionsFormated);
+		sendMessageRequest.enableHtml(true);
 		sendMessageRequest.setChatId(message.getChatId().toString());
 		try {
 			sendMessage(sendMessageRequest);

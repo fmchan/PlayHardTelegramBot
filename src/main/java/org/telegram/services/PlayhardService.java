@@ -55,7 +55,7 @@ public class PlayhardService {
 			for (int i = 0; i < jsonArray.length(); i++) {
 				JSONObject object = jsonArray.getJSONObject(i);
 				// BotLogger.info(LOGTAG, object.getString("title"));
-				responseToUser.add("- " + object.getString("title") + " [" + object.getString("date") + "]");
+				responseToUser.add("- <b>" + object.getString("title") + "</b> [" + object.getString("date") + "]");
 			}
 		} catch (IOException e) {
 			BotLogger.warn(LOGTAG, e);
