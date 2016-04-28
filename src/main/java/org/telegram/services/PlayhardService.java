@@ -41,8 +41,9 @@ public class PlayhardService {
 		final List<String> responseToUser = new ArrayList<>();
 		try {
 			HttpClient client = HttpClientBuilder.create().build();
-			HttpGet request = new HttpGet(
-					"http://52.77.6.192:5000/api/events?type=" + preiod);
+			HttpGet request = new HttpGet(Property.getInstance().getProperty(
+					"service")
+					+ "events?type=" + preiod);
 			HttpResponse response = client.execute(request);
 			int responseCode = response.getStatusLine().getStatusCode();
 			BotLogger.info(LOGTAG, "responseCode:" + responseCode);
@@ -55,7 +56,8 @@ public class PlayhardService {
 			for (int i = 0; i < jsonArray.length(); i++) {
 				JSONObject object = jsonArray.getJSONObject(i);
 				// BotLogger.info(LOGTAG, object.getString("title"));
-				responseToUser.add("- <b>" + object.getString("title") + "</b> [" + object.getString("date") + "]");
+				responseToUser.add("- <b>" + object.getString("title")
+						+ "</b> [" + object.getString("date") + "]");
 			}
 		} catch (IOException e) {
 			BotLogger.warn(LOGTAG, e);

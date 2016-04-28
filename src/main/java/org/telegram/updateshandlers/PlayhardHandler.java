@@ -11,6 +11,7 @@ import org.telegram.BotConfig;
 import org.telegram.Commands;
 import org.telegram.services.BotLogger;
 import org.telegram.services.PlayhardService;
+import org.telegram.services.Property;
 import org.telegram.structure.EventPreiod;
 import org.telegram.telegrambots.TelegramApiException;
 import org.telegram.telegrambots.api.methods.BotApiMethod;
@@ -98,9 +99,15 @@ public class PlayhardHandler extends TelegramLongPollingBot {
 	private void sendIcon(Message message) throws InvalidObjectException {
 		SendPhoto sendPhotoRequest = new SendPhoto();
 		sendPhotoRequest.setChatId(message.getChatId().toString());
-		String fileName = "/Users/admin/Documents/icon.png";
-		File fileToUpload = new File(fileName);
-		sendPhotoRequest.setNewPhoto(fileToUpload.getAbsolutePath(), fileName);
+
+		/*	File fileToUpload = new File("/Users/admin/Documents/chrome-logo-540x334.jpg");
+		URL url = new URL("http://www.v3.co.uk/IMG/608/188608/chrome-logo-540x334.jpg");
+		FileUtils.copyURLToFile(url, fileToUpload);
+		//String fileName = "/Users/admin/Documents/icon.png";
+		sendPhotoRequest.setNewPhoto(fileToUpload.getAbsolutePath(), fileToUpload.getName());*/
+
+		File fileToUpload = new File(Property.getInstance().getProperty("icon"));
+		sendPhotoRequest.setNewPhoto(fileToUpload.getAbsolutePath(), fileToUpload.getName());
 		try {
 			sendPhoto(sendPhotoRequest);
 		} catch (TelegramApiException e) {
