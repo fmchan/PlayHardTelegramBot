@@ -2,6 +2,7 @@ package org.telegram.updateshandlers;
 
 import java.io.File;
 import java.io.InvalidObjectException;
+import java.util.ArrayList;
 import java.util.List;
 
 import jersey.repackaged.com.google.common.base.Joiner;
@@ -10,6 +11,7 @@ import org.json.JSONObject;
 import org.telegram.BotConfig;
 import org.telegram.Commands;
 import org.telegram.services.BotLogger;
+import org.telegram.services.Emoji;
 import org.telegram.services.PlayhardService;
 import org.telegram.services.Property;
 import org.telegram.structure.EventPreiod;
@@ -19,6 +21,7 @@ import org.telegram.telegrambots.api.methods.SendMessage;
 import org.telegram.telegrambots.api.methods.SendPhoto;
 import org.telegram.telegrambots.api.objects.Message;
 import org.telegram.telegrambots.api.objects.ReplyKeyboardHide;
+import org.telegram.telegrambots.api.objects.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.api.objects.Update;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.updateshandlers.SentCallback;
@@ -48,11 +51,14 @@ public class PlayhardHandler extends TelegramLongPollingBot {
 	private void handle(Update update) throws InvalidObjectException {
 		Message message = update.getMessage();
 		if (message != null && message.hasText()) {
-			if (message.getText().startsWith(Commands.eventTodayCommand))
+			if (message.getText().startsWith(Commands.eventTodayCommand)
+					|| message.getText().startsWith(getTodayCommand()))
 				onCommandReceived(message, EventPreiod.TODAY);
-			else if (message.getText().startsWith(Commands.event7DaysCommand))
+			else if (message.getText().startsWith(Commands.event7DaysCommand)
+					|| message.getText().startsWith(get7DaysCommand()))
 				onCommandReceived(message, EventPreiod.SEVEN_DAYS);
-			else if (message.getText().startsWith(Commands.eventLaterCommand))
+			else if (message.getText().startsWith(Commands.eventLaterCommand)
+					|| message.getText().startsWith(getLaterCommand()))
 				onCommandReceived(message, EventPreiod.LATER);
 			else if (message.getText().startsWith(Commands.iconCommand))
 				sendIcon(message);
@@ -72,7 +78,8 @@ public class PlayhardHandler extends TelegramLongPollingBot {
 		replyKeyboardHide.setSelective(true);
 		sendMessageRequest.setReplayMarkup(replyKeyboardHide);
 		sendMessageRequest.setReplayToMessageId(message.getMessageId());
-		String text = events.size() == 0 ? "No event" : Joiner.on("\n").join(events);
+		String text = events.size() == 0 ? "No event" : Joiner.on("\n").join(
+				events);
 		sendMessageRequest.setText(text);
 		sendMessageRequest.enableHtml(true);
 		try {
@@ -81,10 +88,12 @@ public class PlayhardHandler extends TelegramLongPollingBot {
 				public void onResult(BotApiMethod<Message> botApiMethod,
 						JSONObject jsonObject) {
 				}
+
 				@Override
 				public void onError(BotApiMethod<Message> botApiMethod,
 						JSONObject jsonObject) {
 				}
+
 				@Override
 				public void onException(BotApiMethod<Message> botApiMethod,
 						Exception e) {
@@ -100,14 +109,19 @@ public class PlayhardHandler extends TelegramLongPollingBot {
 		SendPhoto sendPhotoRequest = new SendPhoto();
 		sendPhotoRequest.setChatId(message.getChatId().toString());
 
-		/*	File fileToUpload = new File("/Users/admin/Documents/chrome-logo-540x334.jpg");
-		URL url = new URL("http://www.v3.co.uk/IMG/608/188608/chrome-logo-540x334.jpg");
-		FileUtils.copyURLToFile(url, fileToUpload);
-		//String fileName = "/Users/admin/Documents/icon.png";
-		sendPhotoRequest.setNewPhoto(fileToUpload.getAbsolutePath(), fileToUpload.getName());*/
+		/*
+		 * File fileToUpload = new
+		 * File("/Users/admin/Documents/chrome-logo-540x334.jpg"); URL url = new
+		 * URL("http://www.v3.co.uk/IMG/608/188608/chrome-logo-540x334.jpg");
+		 * FileUtils.copyURLToFile(url, fileToUpload); //String fileName =
+		 * "/Users/admin/Documents/icon.png";
+		 * sendPhotoRequest.setNewPhoto(fileToUpload.getAbsolutePath(),
+		 * fileToUpload.getName());
+		 */
 
 		File fileToUpload = new File(Property.getInstance().getProperty("icon"));
-		sendPhotoRequest.setNewPhoto(fileToUpload.getAbsolutePath(), fileToUpload.getName());
+		sendPhotoRequest.setNewPhoto(fileToUpload.getAbsolutePath(),
+				fileToUpload.getName());
 		try {
 			sendPhoto(sendPhotoRequest);
 		} catch (TelegramApiException e) {
@@ -116,23 +130,61 @@ public class PlayhardHandler extends TelegramLongPollingBot {
 	}
 
 	private void sendHelpMessage(Message message) throws InvalidObjectException {
+		ReplyKeyboardMarkup replyKeyboardMarkup = getMainMenuKeyboard();
+		BotLogger.info(LOGTAG, "user: " + message.getChat().getFirstName()
+				+ " " + message.getChat().getLastName() + " - "
+				+ message.getChat().getUserName() + " ("
+				+ message.getChat().getId() + ")");
 		SendMessage sendMessageRequest = new SendMessage();
-		String helpDirectionsFormated = String.format(
-				"When do you want to play?\n\nTo get events: "
-						+ "\n|-- %s : Get today event"
-						+ "\n|-- %s : Get 7-day event"
-						+ "\n|-- %s : Get later event"
-						+ "\n|-- %s : Get Playhard icon"
-						+ "\n\n<a href='http://goo.gl/5gwFja'>Download App</a>",
+		String helpDirectionsFormated = String.format("Hello "
+				+ message.getChat().getFirstName() + " "
+				+ message.getChat().getLastName()
+				+ ",\nwhen do you want to play?\n\nTo get events: "
+				+ "\n|-- %s : Get today event" + "\n|-- %s : Get 7-day event"
+				+ "\n|-- %s : Get later event" + "\n|-- %s : Get Playhard icon"
+				+ "\n\n<a href='http://goo.gl/5gwFja'>Download App</a>",
 				Commands.eventTodayCommand, Commands.event7DaysCommand,
 				Commands.eventLaterCommand, Commands.iconCommand);
 		sendMessageRequest.setText(helpDirectionsFormated);
 		sendMessageRequest.enableHtml(true);
 		sendMessageRequest.setChatId(message.getChatId().toString());
+		sendMessageRequest.setReplayMarkup(replyKeyboardMarkup);
 		try {
 			sendMessage(sendMessageRequest);
 		} catch (TelegramApiException e) {
 			BotLogger.error(LOGTAG, e);
 		}
+	}
+
+	private static ReplyKeyboardMarkup getMainMenuKeyboard() {
+		ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
+		replyKeyboardMarkup.setSelective(true);
+		replyKeyboardMarkup.setResizeKeyboard(true);
+		replyKeyboardMarkup.setOneTimeKeyboad(false);
+
+		List<List<String>> keyboard = new ArrayList<>();
+		List<String> keyboardFirstRow = new ArrayList<>();
+		keyboardFirstRow.add(getTodayCommand());
+		keyboardFirstRow.add(get7DaysCommand());
+		keyboardFirstRow.add(getLaterCommand());
+		keyboard.add(keyboardFirstRow);
+		replyKeyboardMarkup.setKeyboard(keyboard);
+
+		return replyKeyboardMarkup;
+	}
+
+	private static String getTodayCommand() {
+		return String.format("%sToday",
+				Emoji.GRINNING_FACE_WITH_SMILING_EYES.toString());
+	}
+
+	private static String get7DaysCommand() {
+		return String.format("%s7 Days",
+				Emoji.FACE_WITH_TEARS_OF_JOY.toString());
+	}
+
+	private static String getLaterCommand() {
+		return String.format("%sLater",
+				Emoji.SMILING_FACE_WITH_OPEN_MOUTH.toString());
 	}
 }
