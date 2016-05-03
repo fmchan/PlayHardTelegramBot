@@ -60,6 +60,8 @@ public class PlayhardHandler extends TelegramLongPollingBot {
 			else if (message.getText().startsWith(Commands.eventLaterCommand)
 					|| message.getText().startsWith(getLaterCommand()))
 				onCommandReceived(message, EventPreiod.LATER);
+			else if (message.getText().startsWith(Commands.aboutCommand))
+				sendAbout(message);
 			else if (message.getText().startsWith(Commands.iconCommand))
 				sendIcon(message);
 			else if ((message.getText().startsWith(Commands.help) || (message
@@ -105,6 +107,27 @@ public class PlayhardHandler extends TelegramLongPollingBot {
 
 	}
 
+	private void sendAbout(Message message) throws InvalidObjectException {
+		SendMessage sendMessageRequest = new SendMessage();
+		String helpDirectionsFormated = String.format("<b>Playhard - events in Hong Kong</b>\n"
+				+ "PLAYhard is a last minute, one stop event discovery mobile platform for the fun and spontaneous.\n"
+				+ "Browse through a shortlist of most exciting events and book in just two simple taps.\n\n"
+				+ "|-- %s : Get Playhard icon\n"
+				+ "|-- <a href='http://www.playhard.asia'>Visit Playhard Website</a>\n\n"
+				+ "Download App:\n"
+				+ "|-- <a href='https://goo.gl/9t8mQC'>App Store for iOS</a>\n"
+				+ "|-- <a href='https://goo.gl/2DTreA'>Google Play for Android</a>\n",
+				Commands.iconCommand);
+		sendMessageRequest.setText(helpDirectionsFormated);
+		sendMessageRequest.enableHtml(true);
+		sendMessageRequest.setChatId(message.getChatId().toString());
+		try {
+			sendMessage(sendMessageRequest);
+		} catch (TelegramApiException e) {
+			BotLogger.error(LOGTAG, e);
+		}
+	}
+
 	private void sendIcon(Message message) throws InvalidObjectException {
 		SendPhoto sendPhotoRequest = new SendPhoto();
 		sendPhotoRequest.setChatId(message.getChatId().toString());
@@ -141,10 +164,9 @@ public class PlayhardHandler extends TelegramLongPollingBot {
 				+ message.getChat().getLastName()
 				+ ",\nwhen do you want to play?\n\nTo get events: "
 				+ "\n|-- %s : Get today event" + "\n|-- %s : Get 7-day event"
-				+ "\n|-- %s : Get later event" + "\n|-- %s : Get Playhard icon"
-				+ "\n\n<a href='http://goo.gl/5gwFja'>Download App</a>",
+				+ "\n|-- %s : Get later event" + "\n|-- %s : About Playhard",
 				Commands.eventTodayCommand, Commands.event7DaysCommand,
-				Commands.eventLaterCommand, Commands.iconCommand);
+				Commands.eventLaterCommand, Commands.aboutCommand);
 		sendMessageRequest.setText(helpDirectionsFormated);
 		sendMessageRequest.enableHtml(true);
 		sendMessageRequest.setChatId(message.getChatId().toString());

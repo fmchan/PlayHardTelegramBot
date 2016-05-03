@@ -7,6 +7,7 @@ public class Commands {
 	public static final String startCommand = commandInitChar + "start";
 
 	public static final String iconCommand = commandInitChar + "icon";
+	public static final String aboutCommand = commandInitChar + "about";
 
 	public static final String eventTodayCommand = commandInitChar + "today";
 	public static final String event7DaysCommand = commandInitChar + "7days";
