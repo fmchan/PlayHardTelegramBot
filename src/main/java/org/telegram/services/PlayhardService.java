@@ -37,8 +37,8 @@ public class PlayhardService {
 		return currentInstance;
 	}
 
-	public List<String> getEvents(EventPreiod preiod) {
-		final List<String> responseToUser = new ArrayList<>();
+	public List<JSONObject> getEvents(EventPreiod preiod) {
+		final List<JSONObject> responseToUser = new ArrayList<>();
 		try {
 			HttpClient client = HttpClientBuilder.create().build();
 			HttpGet request = new HttpGet(Property.getInstance().getProperty(
@@ -53,12 +53,8 @@ public class PlayhardService {
 			String responseContent = EntityUtils.toString(buf, "UTF-8");
 
 			JSONArray jsonArray = new JSONArray(responseContent);
-			for (int i = 0; i < jsonArray.length(); i++) {
-				JSONObject object = jsonArray.getJSONObject(i);
-				// BotLogger.info(LOGTAG, object.getString("title"));
-				responseToUser.add("- <b>" + object.getString("title")
-						+ "</b> [" + object.getString("date") + "]");
-			}
+			for (int i = 0; i < jsonArray.length(); i++)
+				responseToUser.add(jsonArray.getJSONObject(i));
 		} catch (IOException e) {
 			BotLogger.warn(LOGTAG, e);
 		}

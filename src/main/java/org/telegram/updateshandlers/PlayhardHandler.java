@@ -7,6 +7,7 @@ import java.util.List;
 
 import jersey.repackaged.com.google.common.base.Joiner;
 
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.telegram.BotConfig;
 import org.telegram.Commands;
@@ -28,6 +29,7 @@ import org.telegram.telegrambots.updateshandlers.SentCallback;
 
 public class PlayhardHandler extends TelegramLongPollingBot {
 	private static final String LOGTAG = "PLAYHARDHANDLERS";
+	private List<JSONObject> events;
 
 	@Override
 	public String getBotUsername() {
@@ -64,6 +66,8 @@ public class PlayhardHandler extends TelegramLongPollingBot {
 				sendAbout(message);
 			else if (message.getText().startsWith(Commands.iconCommand))
 				sendIcon(message);
+			else if (StringUtils.isNumeric(message.getText()))
+				sendNumber(message);
 			else if ((message.getText().startsWith(Commands.help) || (message
 					.getText().startsWith(Commands.startCommand) || !message
 					.isGroupMessage()))) {
@@ -73,16 +77,21 @@ public class PlayhardHandler extends TelegramLongPollingBot {
 	}
 
 	private void onCommandReceived(Message message, EventPreiod preiod) {
-		List<String> events = PlayhardService.getInstance().getEvents(preiod);
+		events = PlayhardService.getInstance().getEvents(preiod);
 		SendMessage sendMessageRequest = new SendMessage();
 		sendMessageRequest.setChatId(message.getChatId().toString());
 		ReplyKeyboardHide replyKeyboardHide = new ReplyKeyboardHide();
 		replyKeyboardHide.setSelective(true);
 		sendMessageRequest.setReplayMarkup(replyKeyboardHide);
 		sendMessageRequest.setReplayToMessageId(message.getMessageId());
-		String text = events.size() == 0 ? "No event" : Joiner.on("\n").join(
-				events);
-		sendMessageRequest.setText(text);
+		List<String> textList = new ArrayList<String>();
+		int index = 0;
+		for (JSONObject event : events)
+			textList.add(++index + ". <b>" + event.getString("title")
+					+ "</b> [" + event.getString("date") + "]");
+		sendMessageRequest.setText(events.size() == 0 ? "No event" : Joiner.on(
+				"\n").join(textList)
+				+ "\n\n" + detailCommand());
 		sendMessageRequest.enableHtml(true);
 		try {
 			sendMessageAsync(sendMessageRequest, new SentCallback<Message>() {
@@ -104,20 +113,20 @@ public class PlayhardHandler extends TelegramLongPollingBot {
 		} catch (TelegramApiException e) {
 			BotLogger.error(LOGTAG, e);
 		}
-
 	}
 
 	private void sendAbout(Message message) throws InvalidObjectException {
 		SendMessage sendMessageRequest = new SendMessage();
-		String helpDirectionsFormated = String.format("<b>Playhard - events in Hong Kong</b>\n"
-				+ "PLAYhard is a last minute, one stop event discovery mobile platform for the fun and spontaneous.\n"
-				+ "Browse through a shortlist of most exciting events and book in just two simple taps.\n\n"
-				+ "|-- %s : Get Playhard icon\n"
-				+ "|-- <a href='http://www.playhard.asia'>Visit Playhard Website</a>\n\n"
-				+ "Download App:\n"
-				+ "|-- <a href='https://goo.gl/9t8mQC'>App Store for iOS</a>\n"
-				+ "|-- <a href='https://goo.gl/2DTreA'>Google Play for Android</a>\n",
-				Commands.iconCommand);
+		String helpDirectionsFormated = String
+				.format("<b>Playhard - events in Hong Kong</b>\n"
+						+ "PLAYhard is a last minute, one stop event discovery mobile platform for the fun and spontaneous.\n"
+						+ "Browse through a shortlist of most exciting events and book in just two simple taps.\n\n"
+						+ "|-- %s : Get Playhard icon\n"
+						+ "|-- <a href='http://www.playhard.asia'>Visit Playhard Website</a>\n\n"
+						+ "Download App:\n"
+						+ "|-- <a href='https://goo.gl/9t8mQC'>App Store for iOS</a>\n"
+						+ "|-- <a href='https://goo.gl/2DTreA'>Google Play for Android</a>\n",
+						Commands.iconCommand);
 		sendMessageRequest.setText(helpDirectionsFormated);
 		sendMessageRequest.enableHtml(true);
 		sendMessageRequest.setChatId(message.getChatId().toString());
@@ -152,6 +161,49 @@ public class PlayhardHandler extends TelegramLongPollingBot {
 		}
 	}
 
+	private void sendNumber(Message message) throws InvalidObjectException {
+		SendMessage sendMessageRequest = new SendMessage();
+		sendMessageRequest.setChatId(message.getChatId().toString());
+		sendMessageRequest.setReplayToMessageId(message.getMessageId());
+		int eventId = Integer.valueOf(message.getText());
+		String text = "";
+		if (events == null || events.size() <= 0 || events.size() < eventId
+				|| eventId <= 0)
+			text = "Invalid input! "
+					+ (events.size() > 0 ? detailCommand() : "")
+					+ "\n\nYou may also request an event list:\n"
+					+ eventCommand();
+		else {
+			JSONObject o = events.get(eventId - 1);
+			text = "<b>" + o.getString("title") + "</b>\n"
+					+ o.getString("date") + "\n<b>Address</b>: "
+					+ o.getString("addr") + "\n<b>Price</b>: "
+					+ o.getString("price") + "\n\n" + o.getString("desc");
+		}
+		sendMessageRequest.setText(text);
+		sendMessageRequest.enableHtml(true);
+		try {
+			sendMessageAsync(sendMessageRequest, new SentCallback<Message>() {
+				@Override
+				public void onResult(BotApiMethod<Message> botApiMethod,
+						JSONObject jsonObject) {
+				}
+
+				@Override
+				public void onError(BotApiMethod<Message> botApiMethod,
+						JSONObject jsonObject) {
+				}
+
+				@Override
+				public void onException(BotApiMethod<Message> botApiMethod,
+						Exception e) {
+				}
+			});
+		} catch (TelegramApiException e) {
+			BotLogger.error(LOGTAG, e);
+		}
+	}
+
 	private void sendHelpMessage(Message message) throws InvalidObjectException {
 		ReplyKeyboardMarkup replyKeyboardMarkup = getMainMenuKeyboard();
 		BotLogger.info(LOGTAG, "user: " + message.getChat().getFirstName()
@@ -162,11 +214,9 @@ public class PlayhardHandler extends TelegramLongPollingBot {
 		String helpDirectionsFormated = String.format("Hello "
 				+ message.getChat().getFirstName() + " "
 				+ message.getChat().getLastName()
-				+ ",\nwhen do you want to play?\n\nTo get events: "
-				+ "\n|-- %s : Get today event" + "\n|-- %s : Get 7-day event"
-				+ "\n|-- %s : Get later event" + "\n|-- %s : About Playhard",
-				Commands.eventTodayCommand, Commands.event7DaysCommand,
-				Commands.eventLaterCommand, Commands.aboutCommand);
+				+ ",\nwhen do you want to play?\n\nTo get events: " + "\n"
+				+ eventCommand() + "\n|-- %s : About Playhard",
+				Commands.aboutCommand);
 		sendMessageRequest.setText(helpDirectionsFormated);
 		sendMessageRequest.enableHtml(true);
 		sendMessageRequest.setChatId(message.getChatId().toString());
@@ -193,6 +243,18 @@ public class PlayhardHandler extends TelegramLongPollingBot {
 		replyKeyboardMarkup.setKeyboard(keyboard);
 
 		return replyKeyboardMarkup;
+	}
+
+	private String detailCommand() {
+		return "To get event detail, please input an event number ranging from [1..."
+				+ events.size() + "]";
+	}
+
+	private String eventCommand() {
+		return String.format("|-- %s : Get today event"
+				+ "\n|-- %s : Get 7-day event" + "\n|-- %s : Get later event",
+				Commands.eventTodayCommand, Commands.event7DaysCommand,
+				Commands.eventLaterCommand);
 	}
 
 	private static String getTodayCommand() {
